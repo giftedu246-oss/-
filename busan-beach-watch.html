@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>부산 비치체크</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root { --navy:#102a43; --blue:#1976d2; --sky:#e8f4ff; --mint:#16a085; --orange:#e67e22; --red:#d64545; --ink:#1e293b; --muted:#64748b; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif; background:#fff; }
+    #map { position:fixed; inset:0; z-index:0; background:#cfeeff; }
+    .topbar { position:fixed; inset:0 0 auto; z-index:500; padding:18px 16px 24px; overflow:hidden; color:#fff; background:linear-gradient(135deg,#075985,#0ea5b7 58%,#61c5da); box-shadow:0 3px 16px #07598544; }
+    .topbar:after { content:""; position:absolute; left:-8%; right:-8%; bottom:-17px; height:38px; border-radius:50% 48% 0 0; background:#fff; opacity:.94; }
+    .brand { position:relative; z-index:1; display:flex; align-items:center; gap:10px; font-weight:800; font-size:22px; letter-spacing:-.6px; }
+    .brand-badge { display:grid; place-items:center; width:37px; height:37px; border-radius:50% 50% 50% 8px; transform:rotate(-12deg); background:linear-gradient(145deg,#d9f8ff,#74d9ef); color:#075985; font-size:21px; box-shadow:inset 0 1px #fff9,0 3px 7px #063d5b55; }
+    .subtitle { position:relative; z-index:1; margin:6px 0 0 47px; color:#e7fbff; font-size:12px; }
+    .language { position:absolute; z-index:2; right:16px; top:20px; padding:7px 8px; border:1px solid #ffffff77; border-radius:9px; background:#ffffff2b; color:#fff; font:inherit; font-size:12px; }
+    .language option { color:var(--navy); }
+    .map-key { position:fixed; right:14px; top:99px; z-index:450; padding:9px 11px; border-radius:12px; background:rgba(255,255,255,.92); box-shadow:0 2px 12px #163e6330; font-size:12px; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin:0 4px 0 9px; } .dot:first-child{margin-left:0}.low{background:var(--mint)}.mid{background:var(--orange)}.high{background:var(--red)}
+    .leaflet-control-attribution { font-size:9px!important; }
+    .beach-pin { background:transparent; border:0; } .beach-pin span { display:block; width:27px; height:27px; border:4px solid #fff; border-radius:50% 50% 50% 0; transform:rotate(-45deg); box-shadow:0 3px 7px #0006; } .beach-pin b { display:block; position:absolute; width:9px; height:9px; border-radius:50%; background:#fff; top:8px; left:8px; }
+    .panel { position:fixed; left:0; right:0; bottom:0; z-index:500; padding:10px 16px max(18px, env(safe-area-inset-bottom)); border-radius:24px 24px 0 0; background:#fff; box-shadow:0 -5px 25px #143c5b33; transition:transform .28s ease; }
+    .handle { width:38px; height:4px; margin:0 auto 12px; border-radius:3px; background:#d8e0e8; }
+    .selected { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; } h1 { font-size:21px; margin:0 0 4px; color:var(--navy); } .updated { font-size:12px; color:var(--muted); }
+    .status { flex:none; border-radius:99px; padding:7px 10px; font-size:12px; font-weight:700; } .status.low { color:#087761; background:#e2f7f0; }.status.mid{color:#a65108;background:#fff1df}.status.high{color:#b22727;background:#ffebeb}
+    .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:15px 0; }.metric { padding:11px 8px; border-radius:13px; background:#f6f9fc; text-align:center; }.metric span{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.metric strong{font-size:16px;color:var(--navy)}
+    .cta { width:100%; padding:13px; border:0; border-radius:13px; background:var(--blue); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }.cta:active{transform:scale(.99)}
+    .feed { display:none; margin-top:14px; }.feed.show{display:block}.camera { position:relative; height:160px; overflow:hidden; border-radius:14px; background:linear-gradient(155deg,#92d5ed 0 42%,#e6daa9 43% 57%,#3da3ce 58%); }.camera:after{content:"";position:absolute;left:-10%;bottom:17px;width:125%;height:32px;background:repeating-radial-gradient(ellipse at 30% 100%,transparent 0 13px,#eaf8fd 14px 17px);opacity:.8}.camera-label{position:absolute;z-index:1;top:9px;left:9px;padding:5px 7px;border-radius:6px;background:#0b1d2bcc;color:#fff;font-size:11px}.people {position:absolute;z-index:1;right:12px;bottom:17px;color:#17334b;font-size:22px;letter-spacing:4px}.feed-note{margin:8px 2px 0;color:var(--muted);font-size:12px}
+    @media (min-width:680px){.topbar{left:calc(50% - 310px);right:auto;width:620px}.panel{left:calc(50% - 310px);right:auto;width:620px;border-radius:24px 24px 0 0}.map-key{right:calc(50% - 310px)}}
+  </style>
+</head>
+<body>
+  <div id="map" aria-label="부산 해수욕장 지도"></div>
+  <header class="topbar"><div class="brand"><span class="brand-badge">〰</span><span id="brandText">바다 한누네</span></div><p class="subtitle" id="subtitle">부산의 바다를 한눈에, 더 편안하게</p><select id="language" class="language" aria-label="언어 선택"><option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option><option value="zh">中文</option></select></header>
+  <div class="map-key" id="mapKey"><span class="dot low"></span>여유 <span class="dot mid"></span>보통 <span class="dot high"></span>혼잡</div>
+  <section class="panel" aria-live="polite"><div class="handle"></div><div class="selected"><div><h1 id="beachName">부산 해수욕장</h1><div class="updated" id="updated">아래 또는 지도에서 해수욕장을 선택하세요</div></div></div><div class="metrics"><div class="metric"><span>해운대</span><strong>보통</strong></div><div class="metric"><span>광안리</span><strong>혼잡</strong></div><div class="metric"><span>송도</span><strong>여유</strong></div></div><button class="cta" id="detailButton" type="button">해수욕장 선택하기</button></section>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const beaches=[
+      {name:'해운대 해수욕장',lat:35.1587,lng:129.1604,level:'mid',status:'보통',people:'1,240명',temp:'29°C',wind:'3.1 m/s',icons:'♟ ♟ ♟ ♟ ♟',photo:'https://beachsearcher.fr/images/beaches/410201106/KR201106.jpg',credit:'BeachSearcher'},
+      {name:'광안리 해수욕장',lat:35.1531,lng:129.1187,level:'high',status:'혼잡',people:'2,080명',temp:'28°C',wind:'2.4 m/s',icons:'♟ ♟ ♟ ♟ ♟ ♟ ♟',photo:'https://upload.wikimedia.org/wikipedia/commons/1/17/Gwangalli_Beach.jpg',credit:'Chelsea Hicks / Wikimedia Commons (CC BY 2.0)'},
+      {name:'송도 해수욕장',lat:35.0759,lng:129.0150,level:'low',status:'여유',people:'580명',temp:'29°C',wind:'3.8 m/s',icons:'♟ ♟ ♟',photo:'https://www.busan.go.kr/comm/getImage?fileNo=1&fileTy=MEDIA&srvcId=MEDIA&upperNo=1256',credit:'부산광역시'},
+      {name:'다대포 해수욕장',lat:35.0485,lng:128.9662,level:'low',status:'여유',people:'320명',temp:'29°C',wind:'4.5 m/s',icons:'♟ ♟',photo:'https://commons.wikimedia.org/wiki/Special:FilePath/Dadaepo%20Beach%2C%20Busan%2C%20Korea.jpg?width=1200',credit:'Wikimedia Commons'},
+    ];
+    const map=L.map('map',{zoomControl:false}).setView([35.11,129.07],11);
+    L.control.zoom({position:'bottomright'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    let current=null;
+    function icon(level){return L.divIcon({className:'beach-pin',html:`<span style="background:${level==='low'?'#16a085':level==='mid'?'#e67e22':'#d64545'}"></span><b></b>`,iconSize:[31,38],iconAnchor:[15,37]})}
+    function select(b){current=b;const q=new URLSearchParams({beach:b.name,people:b.people,temp:b.temp,wind:b.wind,level:b.level,status:b.status,icons:b.icons,photo:b.photo,credit:b.credit});window.location.href='beach-detail.html?'+q.toString();}
+    beaches.forEach(b=>L.marker([b.lat,b.lng],{icon:icon(b.level),title:b.name}).addTo(map).bindTooltip(b.name,{permanent:true,direction:'top',offset:[0,-22]}).on('click',()=>select(b)));
+    const translations={ko:{brand:'바다 한누네',sub:'부산의 바다를 한눈에, 더 편안하게',title:'부산 해수욕장',guide:'아래 또는 지도에서 해수욕장을 선택하세요',button:'해수욕장 선택하기',key:'<span class="dot low"></span>여유 <span class="dot mid"></span>보통 <span class="dot high"></span>혼잡',alert:'지도 위의 해운대, 광안리, 송도, 다대포 중 하나를 선택해 주세요.'},en:{brand:'Bada Hannune',sub:'Busan beaches, all at a glance',title:'Busan Beaches',guide:'Select a beach from the map below',button:'Choose a beach',key:'<span class="dot low"></span>Quiet <span class="dot mid"></span>Moderate <span class="dot high"></span>Busy',alert:'Please select Haeundae, Gwangalli, Songdo, or Dadaepo on the map.'},ja:{brand:'海ひと目',sub:'釜山の海をひと目で、もっと快適に',title:'釜山の海水浴場',guide:'地図から海水浴場を選択してください',button:'海水浴場を選ぶ',key:'<span class="dot low"></span>空き <span class="dot mid"></span>普通 <span class="dot high"></span>混雑',alert:'地図上の海雲台、広安里、松島、多大浦から選択してください。'},zh:{brand:'一眼看海',sub:'一眼掌握釜山海滩信息',title:'釜山海滩',guide:'请从地图中选择海滩',button:'选择海滩',key:'<span class="dot low"></span>空闲 <span class="dot mid"></span>一般 <span class="dot high"></span>拥挤',alert:'请在地图上选择海云台、广安里、松岛或多大浦。'}};
+    function setLanguage(lang){const t=translations[lang];document.documentElement.lang=lang;document.getElementById('brandText').textContent=t.brand;document.getElementById('subtitle').textContent=t.sub;document.getElementById('beachName').textContent=t.title;document.getElementById('updated').textContent=t.guide;document.getElementById('detailButton').textContent=t.button;document.getElementById('mapKey').innerHTML=t.key;document.getElementById('detailButton').onclick=()=>alert(t.alert)}
+    document.getElementById('language').addEventListener('change',e=>setLanguage(e.target.value));setLanguage('ko');
+  </script>
+</body>
+</html>
